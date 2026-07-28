@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Movie Tracker</title>
+<style>
+:root{--bg:#f4f5f7;--card:#ffffff;--ink:#1d2733;--muted:#5c6b7a;--line:#e2e6ea;
+  --accent:#2f6fed;--accent-ink:#ffffff;--chip:#eef2f8;--star:#e8a33d;--hi:#fff3cd;}
+@media (prefers-color-scheme: dark){:root{--bg:#12151a;--card:#1b2028;--ink:#e8edf2;--muted:#9aa7b4;--line:#2a313b;
+  --accent:#5b8cff;--accent-ink:#0c0f14;--chip:#232b35;--star:#f0b84a;--hi:#3a3320;}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:18px 20px}
+.wrap{max-width:900px;margin:0 auto;padding:0 16px}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+h1{margin:0;font-size:22px}
+.sub{color:var(--muted);font-size:13px;margin-top:4px}
+.logout{color:var(--muted);font-size:13px;text-decoration:none;border-bottom:1px dotted currentColor}
+.tabs{display:flex;gap:8px;margin-top:16px}
+.tab{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 16px;border-radius:999px;cursor:pointer;font-size:14px}
+.tab.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+main{padding:22px 0 60px}
+.panel{display:none}.panel.active{display:block}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+label{display:block;font-size:12px;color:var(--muted);margin:0 0 4px}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit}
+textarea{min-height:60px;resize:vertical}
+.field{flex:1;min-width:180px}
+button.go{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:9px 14px;cursor:pointer;font-size:13px}
+.frow{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.frow .fmode{max-width:150px}
+.frow .fval{flex:1;display:flex;gap:8px}
+.frow .fval input{flex:1}
+.frm{border:0;background:transparent;color:var(--muted);font-size:22px;line-height:1;cursor:pointer;padding:0 6px}
+.frm:hover{color:var(--accent)}
+.mrow{display:flex;gap:8px;margin-bottom:6px}
+.mrow input{flex:1}
+.mrm{border:0;background:transparent;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:0 6px}
+.mrm:hover{color:var(--accent)}
+.andlbl{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin:2px 0 6px}
+.count{color:var(--muted);font-size:13px;margin:16px 0 8px}
+.tip{color:var(--muted);font-size:12px;margin-top:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.card h3{margin:0 0 2px;font-size:17px}
+.year{color:var(--muted);font-weight:normal;font-size:14px}
+.meta{font-size:13px;color:var(--muted);margin:2px 0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.chip{background:var(--chip);border-radius:6px;padding:2px 8px;font-size:12px}
+.view{border-top:1px dashed var(--line);margin-top:10px;padding-top:8px;font-size:13px}
+.view b{color:var(--ink)}
+.star{color:var(--star);font-weight:600}
+.hi{background:var(--hi);border-radius:3px;padding:0 2px}
+.notes{color:var(--muted);font-style:italic;margin-top:3px}
+.link{cursor:pointer;color:var(--accent);border-bottom:1px dotted transparent}
+.link:hover{border-bottom-color:currentColor}
+.chip.link{color:var(--ink)}
+.chip.link:hover{background:var(--accent);color:var(--accent-ink);border-bottom-color:transparent}
+.star.link{color:var(--star)}
+.star.link:hover{border-bottom-color:currentColor}
+.msg{background:var(--chip);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:12px 0;font-size:14px}
+.hint{color:var(--muted);font-size:12px;margin-top:6px}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:20px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="top">
+    <div><h1>&#127909; Movie Tracker</h1><div class="sub" id="stats">Loading your collection&hellip;</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="search">Search</button>
+    <button class="tab" data-tab="add">Add a movie</button>
+  </div>
+</div></header>
+
+<main class="wrap">
+  <section class="panel active" id="panel-search">
+    <datalist id="dl-actor"></datalist><datalist id="dl-director"></datalist>
+    <datalist id="dl-friend"></datalist><datalist id="dl-location"></datalist><datalist id="dl-title"></datalist>
+    <div class="row" style="margin-bottom:8px">
+      <div style="font-size:13px;color:var(--muted)">Show movies matching
+        <select id="match" style="width:auto;display:inline-block;padding:5px 8px;margin:0 2px"><option value="all">all</option><option value="any">any</option></select>
+        of these criteria:</div>
+    </div>
+    <div id="filters"></div>
+    <div class="row" style="margin-top:2px">
+      <button class="ghost" id="addFilter" type="button">+ Add criterion</button>
+      <button class="go" id="searchBtn">Search</button>
+    </div>
+    <div class="tip">Stack as many criteria as you like, match <b>all</b> (AND) or <b>any</b> (OR), and sort the results. Click any name, location, or rating to search it on its own.</div>
+    <div class="row" style="justify-content:space-between;align-items:center;margin-top:8px">
+      <div class="count" id="count"></div>
+      <div style="display:flex;align-items:center;gap:6px"><label style="margin:0">Sort</label>
+        <select id="sort" style="width:auto;max-width:200px">
+          <option value="title">Title (A&ndash;Z)</option>
+          <option value="rating_desc">Rating (high to low)</option>
+          <option value="rating_asc">Rating (low to high)</option>
+          <option value="date_desc">Date seen (newest)</option>
+          <option value="date_asc">Date seen (oldest)</option>
+          <option value="location">Location (A&ndash;Z)</option>
+        </select>
+      </div>
+    </div>
+    <div id="results"></div>
+  </section>
+
+  <section class="panel" id="panel-add">
+    <div id="addGate">
+      <div class="msg">Adding a movie is password-protected. Browsing and searching are open to everyone.</div>
+      <div class="row" style="max-width:420px">
+        <div class="field"><label>Password</label><input id="addpw" type="password" placeholder="Enter password to unlock adding"></div>
+        <button class="go" id="unlockBtn" type="button">Unlock</button>
+      </div>
+      <div id="gateMsg"></div>
+    </div>
+    <div id="addForm" style="display:none">
+      <div class="row">
+        <div class="field"><label>Title *</label><input id="f-title"></div>
+        <div class="field" style="max-width:140px"><label>Release year</label><input id="f-year" inputmode="numeric"></div>
+      </div>
+      <div class="row"><div class="field"><label>Director(s) &mdash; pick or type; a new box appears for each one</label><div id="m-dir" class="multi"></div></div></div>
+      <div class="row"><div class="field"><label>Cast &mdash; pick or type; a new box appears for each one</label><div id="m-cast" class="multi"></div></div></div>
+      <div class="msg" style="margin-top:16px"><b>This viewing</b></div>
+      <div class="row">
+        <div class="field" style="max-width:170px"><label>Date seen</label><input id="f-date" type="date"></div>
+        <div class="field"><label>Location</label><input id="f-loc" list="dl-location" autocomplete="off" placeholder="Pick or type&hellip;"></div>
+        <div class="field" style="max-width:130px"><label>Rating (0&ndash;5)</label><input id="f-rating" inputmode="decimal" placeholder="e.g. 3.5"></div>
+      </div>
+      <div class="row"><div class="field"><label>Friends &mdash; pick or type; a new box appears for each one</label><div id="m-friends" class="multi"></div></div></div>
+      <div class="row"><div class="field"><label>Notes / comments</label><textarea id="f-notes"></textarea></div></div>
+      <div class="row" style="margin-top:12px">
+        <button class="go" id="addBtn">Add to collection</button>
+        <button class="ghost" id="backupBtn" type="button">Back up to Dropbox now</button>
+        <button class="ghost" id="lockBtn" type="button">Lock</button>
+      </div>
+      <div class="hint">Saved straight to your database &mdash; it'll show up in search right away.</div>
+      <div id="addMsg"></div>
+      <div id="backupMsg"></div>
+    </div>
+  </section>
+</main>
+<footer>Your movie collection</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => (s==null?"":String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const FACETS = {actors:[],directors:[],friends:[],locations:[],titles:[]};
+const MODES=["actor","director","friend","location","rating","title"];
+const LABELS={actor:"Actor",director:"Director",friend:"Friends",location:"Location",rating:"Rating",title:"Title"};
+
+async function api(url, opts){        // browsing + search are public — no redirect on 401
+  const r = await fetch(url, opts);
+  return r.json();
+}
+
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
+  t.classList.add("active"); $("#panel-"+t.dataset.tab).classList.add("active");
+}));
+
+function fillDatalists(){
+  const map={actor:FACETS.actors,director:FACETS.directors,friend:FACETS.friends,location:FACETS.locations,title:FACETS.titles};
+  for(const k in map){const dl=document.getElementById("dl-"+k);dl.innerHTML="";
+    [...new Set(map[k])].forEach(n=>{const o=document.createElement("option");o.value=n;dl.appendChild(o);});}
+}
+
+// ---- filter rows ----------------------------------------------------------
+function renderVal(row){
+  const mode=row.querySelector(".fmode").value, c=row.querySelector(".fval");
+  if(mode==="rating"){
+    c.innerHTML='<select class="fcmp"><option value="gte">At least</option><option value="eq">Exactly</option><option value="lte">At most</option></select><select class="frating"></select>';
+    const rv=c.querySelector(".frating");
+    for(let k=10;k>=1;k--){const v=(k/2).toString();const o=document.createElement("option");o.value=v;o.textContent=v;rv.appendChild(o);}
+  }else{
+    c.innerHTML='<input class="fq" list="dl-'+mode+'" autocomplete="off" placeholder="'+LABELS[mode]+'…">';
+  }
+}
+function addRow(mode,value){
+  const wrap=$("#filters");
+  if(wrap.children.length){const a=document.createElement("div");a.className="andlbl";a.textContent="and";wrap.appendChild(a);}
+  const row=document.createElement("div");row.className="frow";
+  row.innerHTML='<select class="fmode"></select><span class="fval"></span><button class="frm" type="button" title="Remove">&times;</button>';
+  const sel=row.querySelector(".fmode");
+  MODES.forEach(m=>{const o=document.createElement("option");o.value=m;o.textContent=LABELS[m];sel.appendChild(o);});
+  sel.value=mode||"actor";
+  sel.addEventListener("change",()=>renderVal(row));
+  row.querySelector(".frm").addEventListener("click",()=>{
+    const prev=row.previousElementSibling; row.remove();
+    if(prev&&prev.classList.contains("andlbl"))prev.remove();
+    else{const nx=$("#filters").querySelector(".andlbl");if(nx)nx.remove();}
+    if(!$("#filters").querySelector(".frow"))addRow("actor");
+  });
+  wrap.appendChild(row); renderVal(row);
+  if(value!==undefined){
+    if(mode==="rating"){row.querySelector(".fcmp").value="eq";row.querySelector(".frating").value=value;}
+    else{row.querySelector(".fq").value=value;}
+  }
+  return row;
+}
+$("#addFilter").addEventListener("click",()=>addRow("actor"));
+
+function collect(){
+  const out=[];
+  $("#filters").querySelectorAll(".frow").forEach(row=>{
+    const mode=row.querySelector(".fmode").value;
+    if(mode==="rating"){out.push({mode,cmp:row.querySelector(".fcmp").value,val:parseFloat(row.querySelector(".frating").value)});}
+    else{const q=row.querySelector(".fq").value.trim();if(q)out.push({mode,q});}
+  });
+  return out;
+}
+
+// ---- rendering ------------------------------------------------------------
+function ratingOk(r,f){return r!=null&&(f.cmp==="gte"?r>=f.val:f.cmp==="lte"?r<=f.val:r===f.val);}
+function termOf(filters,mode){const f=filters.find(x=>x.mode===mode);return f?(f.q||""):"";}
+function hi(text,term){text=String(text==null?"":text);if(!term)return esc(text);
+  const i=text.toLowerCase().indexOf(term.toLowerCase());if(i<0)return esc(text);
+  return esc(text.slice(0,i))+'<span class="hi">'+esc(text.slice(i,i+term.length))+'</span>'+esc(text.slice(i+term.length));}
+function nameSpan(type,name,term){return '<span class="link" data-type="'+type+'" data-value="'+esc(name)+'">'+hi(name,term)+'</span>';}
+function ratingSpan(r){if(r==null||r==="")return "—";return '<span class="star link" data-type="rating" data-value="'+r+'">★ '+r+'</span>';}
+
+let lastFilters=[];
+function movieCard(m,filters){
+  filters=filters||[];
+  const dT=termOf(filters,"director"),aT=termOf(filters,"actor"),tT=termOf(filters,"title"),fT=termOf(filters,"friend"),lT=termOf(filters,"location");
+  const vlf=filters.filter(f=>["friend","location","rating"].includes(f.mode));
+  const v=m.viewings.slice().sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  const views=v.map(x=>{
+    const hit=vlf.some(f=> f.mode==="friend"?x.friends.some(z=>z.toLowerCase().includes((f.q||"").toLowerCase()))
+      : f.mode==="location"?(x.location||"").toLowerCase().includes((f.q||"").toLowerCase())
+      : ratingOk(x.rating,f));
+    const loc=x.location?nameSpan("location",x.location,lT):"—";
+    const fr=x.friends.length?" &middot; with "+x.friends.map(z=>nameSpan("friend",z,fT)).join(", "):"";
+    const nt=x.notes?'<div class="notes">'+esc(x.notes)+'</div>':"";
+    const style=hit?' style="background:var(--hi);border-radius:6px;padding:6px 8px"':'';
+    return '<div class="view"'+style+'><b>'+esc(x.date||"—")+'</b> &middot; '+loc+' &middot; '+ratingSpan(x.rating)+fr+nt+'</div>';
+  }).join("");
+  const dir=m.directors.length?'<div class="meta">Directed by '+m.directors.map(d=>nameSpan("director",d,dT)).join(", ")+'</div>':"";
+  const cast=m.actors.length?'<div class="chips">'+m.actors.map(a=>'<span class="chip link" data-type="actor" data-value="'+esc(a)+'">'+hi(a,aT)+'</span>').join("")+'</div>':"";
+  return '<div class="card"><h3>'+hi(m.title,tT)+' '+(m.year?'<span class="year">('+m.year+')</span>':"")+'</h3>'+dir+cast+views+'</div>';
+}
+let lastRes=[];
+function repRating(m,hi){const rs=m.viewings.map(v=>v.rating).filter(r=>r!=null);if(!rs.length)return null;return hi?Math.max(...rs):Math.min(...rs);}
+function repDate(m,newest){const ds=m.viewings.map(v=>v.date).filter(Boolean).sort();if(!ds.length)return "";return newest?ds[ds.length-1]:ds[0];}
+function repLoc(m){const ls=m.viewings.map(v=>v.location).filter(Boolean).sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase()));return ls.length?ls[0]:"";}
+function sortRes(res){
+  const key=$("#sort").value, dir=(key==="rating_desc"||key==="date_desc")?-1:1;
+  const val={title:m=>(m.title||"").toLowerCase(),rating_desc:m=>repRating(m,true),rating_asc:m=>repRating(m,false),
+    date_desc:m=>repDate(m,true),date_asc:m=>repDate(m,false),location:m=>repLoc(m).toLowerCase()}[key];
+  const tie=(a,b)=>(a.title||"").toLowerCase().localeCompare((b.title||"").toLowerCase());
+  res.sort((a,b)=>{
+    const av=val(a),bv=val(b), an=(av==null||av===""), bn=(bv==null||bv==="");
+    if(an&&bn)return tie(a,b); if(an)return 1; if(bn)return -1;
+    const c=(typeof av==="number")?(av-bv):(av<bv?-1:av>bv?1:0);
+    return c!==0?dir*c:tie(a,b);
+  });
+  return res;
+}
+function render(res){
+  if(res)lastRes=res;
+  const filters=lastFilters, mode=$("#match").value, many=filters.length>1;
+  sortRes(lastRes);
+  $("#count").textContent=lastRes.length+" movie"+(lastRes.length===1?"":"s")+(many?" matching "+mode+" of "+filters.length+" criteria":" found");
+  $("#results").innerHTML=lastRes.slice(0,300).map(m=>movieCard(m,filters)).join("")
+    +(lastRes.length>300?'<div class="hint">Showing first 300 of '+lastRes.length+'.</div>':"");
+}
+function runSearch(){
+  const filters=collect(); lastFilters=filters;
+  if(!filters.length){$("#count").textContent="Add a criterion and search.";$("#results").innerHTML="";lastRes=[];return;}
+  const mode=$("#match").value;
+  $("#count").textContent="Searching…";
+  api("/api/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filters,match:mode})})
+    .then(r=>render(r)).catch(()=>{$("#count").textContent="Something went wrong.";});
+}
+$("#searchBtn").addEventListener("click",runSearch);
+$("#sort").addEventListener("change",()=>{if(lastFilters.length)render();});
+$("#match").addEventListener("change",()=>{if(lastFilters.length)runSearch();});
+$("#panel-search").addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.classList.contains("fq"))runSearch();});
+
+document.body.addEventListener("click",e=>{
+  const el=e.target.closest(".link[data-type]");if(!el)return;
+  document.querySelector('.tab[data-tab="search"]').click();
+  $("#filters").innerHTML="";
+  addRow(el.dataset.type, el.dataset.value);
+  runSearch(); window.scrollTo({top:0,behavior:"smooth"});
+});
+
+// ---- add a movie (dropdown pickers) ---------------------------------------
+function multiRow(container,dl){
+  const row=document.createElement("div");row.className="mrow";
+  row.innerHTML='<input list="'+dl+'" autocomplete="off" placeholder="Pick or type…"><button type="button" class="mrm" title="Remove">&times;</button>';
+  const inp=row.querySelector("input");
+  function maybeSpawn(exactOnly){
+    const val=inp.value.trim();
+    if(!val||row!==container.lastElementChild)return;
+    if(exactOnly){const opts=[...document.getElementById(dl).options].map(o=>o.value);if(!opts.includes(val))return;}
+    multiRow(container,dl);
+  }
+  inp.addEventListener("input",()=>maybeSpawn(true));
+  inp.addEventListener("change",()=>maybeSpawn(false));
+  row.querySelector(".mrm").addEventListener("click",()=>{
+    if(container.querySelectorAll(".mrow").length>1)row.remove();else inp.value="";
+  });
+  container.appendChild(row);return row;
+}
+function setupMulti(id,dl){const c=document.getElementById(id);c.innerHTML="";multiRow(c,dl);}
+function getMulti(id){return [...new Set([...document.getElementById(id).querySelectorAll("input")].map(i=>i.value.trim()).filter(Boolean))];}
+
+// ---- add-gate (adding requires the password; browsing does not) -----------
+function showAdd(authed){
+  document.getElementById("addGate").style.display = authed ? "none" : "block";
+  document.getElementById("addForm").style.display = authed ? "block" : "none";
+}
+function checkAuth(){ fetch("/api/auth").then(r=>r.json()).then(a=>showAdd(!!a.authed)).catch(()=>showAdd(false)); }
+$("#unlockBtn").addEventListener("click",()=>{
+  fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:$("#addpw").value})})
+    .then(r=>{ if(r.ok){$("#addpw").value="";$("#gateMsg").innerHTML="";showAdd(true);}
+               else{$("#gateMsg").innerHTML='<div class="msg">Incorrect password.</div>';} })
+    .catch(()=>{$("#gateMsg").innerHTML='<div class="msg">Something went wrong &mdash; please try again.</div>';});
+});
+$("#addpw").addEventListener("keydown",e=>{if(e.key==="Enter")$("#unlockBtn").click();});
+$("#lockBtn").addEventListener("click",()=>{ fetch("/api/logout",{method:"POST"}).then(()=>{showAdd(false);$("#addMsg").innerHTML="";}); });
+$("#backupBtn").addEventListener("click",()=>{
+  $("#backupMsg").innerHTML='<div class="msg">Backing up&hellip;</div>';
+  fetch("/api/backup",{method:"POST"}).then(r=>r.json().then(d=>({s:r.status,d})))
+    .then(({s,d})=>{ $("#backupMsg").innerHTML=(s===200&&d&&d.ok)
+        ? '<div class="msg">Backed up to Dropbox: <b>'+esc(d.path||"")+'</b></div>'
+        : '<div class="msg">'+esc((d&&d.detail)||"Backup failed.")+'</div>'; })
+    .catch(()=>{$("#backupMsg").innerHTML='<div class="msg">Backup failed &mdash; please try again.</div>';});
+});
+
+$("#addBtn").addEventListener("click",()=>{
+  const title=$("#f-title").value.trim();
+  if(!title){$("#addMsg").innerHTML='<div class="msg">Please enter a title.</div>';return;}
+  const yr=parseInt($("#f-year").value,10),rt=parseFloat($("#f-rating").value);
+  const body={title,year:isNaN(yr)?null:yr,directors:getMulti("m-dir"),actors:getMulti("m-cast"),
+    viewing:{date:$("#f-date").value||null,location:$("#f-loc").value.trim()||null,
+      rating:isNaN(rt)?null:rt,notes:$("#f-notes").value.trim()||null,friends:getMulti("m-friends")}};
+  fetch("/api/movies",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+    .then(r=>{ if(r.status===401){showAdd(false);$("#gateMsg").innerHTML='<div class="msg">Your session expired &mdash; enter the password again.</div>';return null;} return r.json(); })
+    .then(res=>{
+      if(res&&res.ok){
+        $("#addMsg").innerHTML='<div class="msg">Added <b>'+esc(title)+'</b> to your collection.</div>';
+        $("#f-title").value="";$("#f-year").value="";$("#f-date").value="";$("#f-loc").value="";$("#f-rating").value="";$("#f-notes").value="";
+        setupMulti("m-dir","dl-director");setupMulti("m-cast","dl-actor");setupMulti("m-friends","dl-friend");
+        loadFacets();
+      }else if(res!==null){$("#addMsg").innerHTML='<div class="msg">Could not save &mdash; please try again.</div>';}
+    }).catch(()=>{$("#addMsg").innerHTML='<div class="msg">Could not save &mdash; please try again.</div>';});
+});
+
+function loadFacets(){
+  return api("/api/facets").then(f=>{
+    Object.assign(FACETS,f);
+    $("#stats").textContent=FACETS.titles.length+" movies · "+FACETS.actors.length+" actors · "
+      +FACETS.directors.length+" directors · "+FACETS.friends.length+" friends";
+    fillDatalists();
+  });
+}
+
+addRow("actor");
+setupMulti("m-dir","dl-director");
+setupMulti("m-cast","dl-actor");
+setupMulti("m-friends","dl-friend");
+loadFacets();
+checkAuth();
+</script>
+</body>
+</html>
