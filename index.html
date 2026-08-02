@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en-US" dir="ltr">
 <head>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%23e8b23a'/%3E%3Crect%20x='12'%20y='31'%20width='40'%20height='21'%20rx='3'%20fill='%231b202b'/%3E%3Cg%20transform='rotate(-10%2032%2026)'%3E%3Crect%20x='12'%20y='20'%20width='40'%20height='11'%20rx='2'%20fill='%231b202b'/%3E%3Cpath%20d='M15%2020%20L21%2020%20L17%2031%20L12%2031%20L12%2026%20Z'%20fill='%23fff'/%3E%3Cpath%20d='M27%2020%20L33%2020%20L29%2031%20L23%2031%20Z'%20fill='%23fff'/%3E%3Cpath%20d='M39%2020%20L45%2020%20L41%2031%20L35%2031%20Z'%20fill='%23fff'/%3E%3C/g%3E%3C/svg%3E">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Movie Tracker</title>
+<title>Longhornchaser's Movie Tracker</title>
 <style>
 :root{--bg:#f4f5f7;--card:#ffffff;--ink:#1d2733;--muted:#5c6b7a;--line:#e2e6ea;
   --accent:#2f6fed;--accent-ink:#ffffff;--chip:#eef2f8;--star:#e8a33d;--hi:#fff3cd;}
@@ -30,6 +31,7 @@ textarea{min-height:60px;resize:vertical}
 .field{flex:1;min-width:180px}
 button.go{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer}
 button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:9px 14px;cursor:pointer;font-size:13px}
+button.danger{background:#c0392b;color:#fff;border:0;border-radius:8px;padding:9px 14px;font-size:13px;cursor:pointer}
 .frow{display:flex;gap:8px;align-items:center;margin-bottom:8px}
 .frow .fmode{max-width:150px}
 .frow .fval{flex:1;display:flex;gap:8px}
@@ -62,17 +64,28 @@ button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink
 .star.link:hover{border-bottom-color:currentColor}
 .msg{background:var(--chip);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:12px 0;font-size:14px}
 .hint{color:var(--muted);font-size:12px;margin-top:6px}
-footer{color:var(--muted);font-size:12px;text-align:center;padding:20px}
+.tmdbbox{background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:16px}
+.tres{display:flex;gap:10px;padding:8px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;background:var(--card)}
+.tres img{width:46px;height:69px;object-fit:cover;border-radius:4px;flex:none;background:var(--chip)}
+.tres .tm{flex:1;min-width:0}
+.tres .tm p{margin:2px 0 0;font-size:12px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vblock{border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0;background:var(--card)}
+hr{border:0;border-top:1px solid var(--line);margin:22px 0}
+footer{color:var(--muted);font-size:12px;padding:16px}
+.attribution{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;max-width:720px;margin:0 auto;text-align:center}
+.attribution svg{flex:none;border-radius:5px}
+.attribution span{max-width:520px}
 </style>
 </head>
 <body>
 <header><div class="wrap">
   <div class="top">
-    <div><h1>&#127909; Movie Tracker</h1><div class="sub" id="stats">Loading your collection&hellip;</div></div>
+    <div><h1>&#127909; Longhornchaser's Movie Tracker</h1><div class="sub" id="stats">Loading your collection&hellip;</div></div>
   </div>
   <div class="tabs">
     <button class="tab active" data-tab="search">Search</button>
     <button class="tab" data-tab="add">Add a movie</button>
+    <button class="tab" data-tab="manage" id="tab-manage" style="display:none">Manage</button>
   </div>
 </div></header>
 
@@ -117,6 +130,15 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:20px}
       <div id="gateMsg"></div>
     </div>
     <div id="addForm" style="display:none">
+      <div class="tmdbbox" id="tmdbBox" style="display:none">
+        <label>Look up the movie online (fills in title, directors &amp; cast for you)</label>
+        <div class="row">
+          <div class="field"><input id="tmdbq" placeholder="Type a movie title and search&hellip;" autocomplete="off"></div>
+          <button class="ghost" id="tmdbSearchBtn" type="button">Search</button>
+        </div>
+        <div id="tmdbResults"></div>
+        <div class="hint">Powered by The Movie Database (TMDB). Pick a match to auto-fill &mdash; then review the cast &amp; crew below and trim anything you don't want. Or skip this and type everything by hand.</div>
+      </div>
       <div class="row">
         <div class="field"><label>Title *</label><input id="f-title"></div>
         <div class="field" style="max-width:140px"><label>Release year</label><input id="f-year" inputmode="numeric"></div>
@@ -132,17 +154,55 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:20px}
       <div class="row"><div class="field"><label>Friends &mdash; pick or type; a new box appears for each one</label><div id="m-friends" class="multi"></div></div></div>
       <div class="row"><div class="field"><label>Notes / comments</label><textarea id="f-notes"></textarea></div></div>
       <div class="row" style="margin-top:12px">
-        <button class="go" id="addBtn">Add to collection</button>
+        <button class="go" id="addBtn">Review &amp; add</button>
         <button class="ghost" id="backupBtn" type="button">Back up to Dropbox now</button>
         <button class="ghost" id="lockBtn" type="button">Lock</button>
       </div>
       <div class="hint">Saved straight to your database &mdash; it'll show up in search right away.</div>
       <div id="addMsg"></div>
+      <div id="addReview" style="display:none"></div>
       <div id="backupMsg"></div>
     </div>
   </section>
+
+  <section class="panel" id="panel-manage">
+    <div id="mgGate"><div class="msg">Managing your collection is password-protected. Open the <b>Add a movie</b> tab to unlock, then come back here.</div></div>
+    <div id="mgBody" style="display:none">
+      <label>Find a movie to edit</label>
+      <div class="row">
+        <div class="field"><input id="mg-find" list="dl-title" autocomplete="off" placeholder="Type a title&hellip;"></div>
+        <button class="go" id="mgFindBtn" type="button">Load</button>
+      </div>
+      <div class="hint">Tip: search finds every match &mdash; handy when two films share a title (like your two <i>Halloween</i>s).</div>
+      <div id="mgEditor"></div>
+      <hr>
+      <div class="msg"><b>Database</b></div>
+      <div class="row" style="align-items:center">
+        <button class="ghost" id="mgDownload" type="button">&#11015; Download database</button>
+      </div>
+      <div class="hint">Downloads the current live database. Open it in a free tool like DB Browser for SQLite to make bulk edits, then upload it back below.</div>
+      <div class="row" style="margin-top:14px;align-items:center">
+        <input type="file" id="mgReplaceFile" accept=".db" style="max-width:280px">
+        <button class="danger" id="mgReplaceBtn" type="button">Replace database</button>
+      </div>
+      <div class="hint">&#9888; This overwrites everything on the live site with the uploaded file. Back up first &mdash; the <b>Add a movie</b> tab has a &ldquo;Back up to Dropbox now&rdquo; button.</div>
+      <div id="mgDbMsg"></div>
+    </div>
+  </section>
 </main>
-<footer>Your movie collection</footer>
+
+<footer>
+  <div class="attribution">
+    <a href="https://www.themoviedb.org/" target="_blank" rel="noopener" aria-label="The Movie Database">
+      <svg width="110" height="16" viewBox="0 0 224 32" role="img" aria-label="TMDB">
+        <defs><linearGradient id="tg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#90cea1"/><stop offset="1" stop-color="#01b4e4"/></linearGradient></defs>
+        <rect width="224" height="32" rx="6" fill="url(#tg)"/>
+        <text x="112" y="22" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" font-size="18" letter-spacing="1.5" fill="#0d253f">TMDB</text>
+      </svg>
+    </a>
+    <span>Actor and director information sourced from The Movie Database (TMDB). This product uses the TMDB API but is not endorsed or certified by TMDB.</span>
+  </div>
+</footer>
 
 <script>
 const $ = s => document.querySelector(s);
@@ -150,6 +210,7 @@ const esc = s => (s==null?"":String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'
 const FACETS = {actors:[],directors:[],friends:[],locations:[],titles:[]};
 const MODES=["actor","director","friend","location","rating","title"];
 const LABELS={actor:"Actor",director:"Director",friend:"Friends",location:"Location",rating:"Rating",title:"Title"};
+let TMDB_ENABLED=false;
 
 async function api(url, opts){        // browsing + search are public — no redirect on 401
   const r = await fetch(url, opts);
@@ -288,7 +349,7 @@ document.body.addEventListener("click",e=>{
   runSearch(); window.scrollTo({top:0,behavior:"smooth"});
 });
 
-// ---- add a movie (dropdown pickers) ---------------------------------------
+// ---- multi-value pickers (shared by Add and Manage) -----------------------
 function multiRow(container,dl){
   const row=document.createElement("div");row.className="mrow";
   row.innerHTML='<input list="'+dl+'" autocomplete="off" placeholder="Pick or type…"><button type="button" class="mrm" title="Remove">&times;</button>';
@@ -308,11 +369,25 @@ function multiRow(container,dl){
 }
 function setupMulti(id,dl){const c=document.getElementById(id);c.innerHTML="";multiRow(c,dl);}
 function getMulti(id){return [...new Set([...document.getElementById(id).querySelectorAll("input")].map(i=>i.value.trim()).filter(Boolean))];}
+function fillMulti(containerEl,dl,names){
+  containerEl.innerHTML="";
+  (names||[]).forEach(n=>{const row=multiRow(containerEl,dl);row.querySelector("input").value=n;});
+  multiRow(containerEl,dl);
+}
+function readMulti(containerEl){return [...new Set([...containerEl.querySelectorAll("input")].map(i=>i.value.trim()).filter(Boolean))];}
 
 // ---- add-gate (adding requires the password; browsing does not) -----------
 function showAdd(authed){
   document.getElementById("addGate").style.display = authed ? "none" : "block";
   document.getElementById("addForm").style.display = authed ? "block" : "none";
+  document.getElementById("tmdbBox").style.display = (authed && TMDB_ENABLED) ? "block" : "none";
+  document.getElementById("tab-manage").style.display = authed ? "inline-block" : "none";
+  document.getElementById("mgBody").style.display = authed ? "block" : "none";
+  document.getElementById("mgGate").style.display = authed ? "none" : "block";
+  if(!authed){
+    const mt=document.querySelector('.tab[data-tab="manage"]');
+    if(mt&&mt.classList.contains("active"))document.querySelector('.tab[data-tab="search"]').click();
+  }
 }
 function checkAuth(){ fetch("/api/auth").then(r=>r.json()).then(a=>showAdd(!!a.authed)).catch(()=>showAdd(false)); }
 $("#unlockBtn").addEventListener("click",()=>{
@@ -332,23 +407,186 @@ $("#backupBtn").addEventListener("click",()=>{
     .catch(()=>{$("#backupMsg").innerHTML='<div class="msg">Backup failed &mdash; please try again.</div>';});
 });
 
-$("#addBtn").addEventListener("click",()=>{
+// ---- online lookup (TMDb) --------------------------------------------------
+function tmdbSearch(){
+  const q=$("#tmdbq").value.trim(); if(!q){$("#tmdbResults").innerHTML="";return;}
+  $("#tmdbResults").innerHTML='<div class="hint">Searching&hellip;</div>';
+  fetch("/api/tmdb/search?q="+encodeURIComponent(q)).then(r=>r.json().then(d=>({s:r.status,d})))
+    .then(({s,d})=>{
+      if(s!==200){$("#tmdbResults").innerHTML='<div class="msg">'+esc((d&&d.detail)||"Lookup failed.")+'</div>';return;}
+      if(!d.length){$("#tmdbResults").innerHTML='<div class="hint">No matches. You can still enter the movie by hand below.</div>';return;}
+      window._tres=d;
+      $("#tmdbResults").innerHTML=d.map((m,i)=>'<div class="tres">'+(m.poster?'<img src="'+esc(m.poster)+'" alt="">':'<img alt="">')+
+        '<div class="tm"><b>'+esc(m.title)+'</b> '+(m.year?'<span class="year">('+esc(m.year)+')</span>':'')+'<p>'+esc(m.overview)+'</p></div>'+
+        '<button class="go" type="button" data-i="'+i+'">Use this</button></div>').join("");
+    }).catch(()=>{$("#tmdbResults").innerHTML='<div class="msg">Lookup failed &mdash; please try again.</div>';});
+}
+$("#tmdbSearchBtn").addEventListener("click",tmdbSearch);
+$("#tmdbq").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();tmdbSearch();}});
+$("#tmdbResults").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-i]"); if(!b)return;
+  const m=window._tres[b.dataset.i];
+  $("#f-title").value=m.title||""; $("#f-year").value=m.year||"";
+  $("#tmdbResults").innerHTML='<div class="hint">Loading cast &amp; crew&hellip;</div>';
+  fetch("/api/tmdb/credits?id="+encodeURIComponent(m.id)).then(r=>r.json().then(d=>({s:r.status,d})))
+    .then(({s,d})=>{
+      if(s===200){
+        fillMulti(document.getElementById("m-dir"),"dl-director",d.directors);
+        fillMulti(document.getElementById("m-cast"),"dl-actor",d.cast);
+        $("#tmdbResults").innerHTML='<div class="msg">Filled in <b>'+esc(m.title)+'</b>. Review the directors &amp; cast below &mdash; remove any you don\'t want, or add your own &mdash; then fill in your viewing details.</div>';
+      }else{
+        $("#tmdbResults").innerHTML='<div class="msg">Got the title, but couldn\'t load cast &amp; crew. Add them by hand below.</div>';
+      }
+    }).catch(()=>{$("#tmdbResults").innerHTML='<div class="msg">Got the title, but the cast lookup failed. Add them by hand below.</div>';});
+});
+
+// ---- add a movie (with a confirm step) ------------------------------------
+function buildAddBody(){
   const title=$("#f-title").value.trim();
-  if(!title){$("#addMsg").innerHTML='<div class="msg">Please enter a title.</div>';return;}
+  if(!title){$("#addMsg").innerHTML='<div class="msg">Please enter a title.</div>';return null;}
   const yr=parseInt($("#f-year").value,10),rt=parseFloat($("#f-rating").value);
-  const body={title,year:isNaN(yr)?null:yr,directors:getMulti("m-dir"),actors:getMulti("m-cast"),
+  return {title,year:isNaN(yr)?null:yr,directors:getMulti("m-dir"),actors:getMulti("m-cast"),
     viewing:{date:$("#f-date").value||null,location:$("#f-loc").value.trim()||null,
       rating:isNaN(rt)?null:rt,notes:$("#f-notes").value.trim()||null,friends:getMulti("m-friends")}};
+}
+$("#addBtn").addEventListener("click",()=>{
+  const body=buildAddBody(); if(!body)return; window._addBody=body;
+  const v=body.viewing;
+  $("#addReview").style.display="block";
+  $("#addReview").innerHTML='<div class="card"><div class="msg" style="margin-top:0"><b>Please confirm</b></div>'+
+    '<div class="meta"><b>Title:</b> '+esc(body.title)+(body.year?' ('+esc(body.year)+')':'')+'</div>'+
+    '<div class="meta"><b>Directors:</b> '+(body.directors.map(esc).join(", ")||"—")+'</div>'+
+    '<div class="meta"><b>Cast:</b> '+(body.actors.map(esc).join(", ")||"—")+'</div>'+
+    '<div class="meta"><b>Date:</b> '+(esc(v.date)||"—")+' &middot; <b>Location:</b> '+(esc(v.location)||"—")+' &middot; <b>Rating:</b> '+(v.rating==null?"—":esc(v.rating))+'</div>'+
+    '<div class="meta"><b>Friends:</b> '+(v.friends.map(esc).join(", ")||"—")+'</div>'+
+    '<div class="meta"><b>Notes:</b> '+(esc(v.notes)||"—")+'</div>'+
+    '<div class="row" style="margin-top:10px"><button class="go" id="confirmAddBtn" type="button">Confirm &amp; save</button><button class="ghost" id="editAddBtn" type="button">Back to edit</button></div></div>';
+  $("#confirmAddBtn").addEventListener("click",doAdd);
+  $("#editAddBtn").addEventListener("click",()=>{$("#addReview").style.display="none";$("#addReview").innerHTML="";});
+});
+function doAdd(){
+  const body=window._addBody; if(!body)return;
   fetch("/api/movies",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
     .then(r=>{ if(r.status===401){showAdd(false);$("#gateMsg").innerHTML='<div class="msg">Your session expired &mdash; enter the password again.</div>';return null;} return r.json(); })
     .then(res=>{
       if(res&&res.ok){
-        $("#addMsg").innerHTML='<div class="msg">Added <b>'+esc(title)+'</b> to your collection.</div>';
+        $("#addReview").style.display="none";$("#addReview").innerHTML="";
+        $("#addMsg").innerHTML='<div class="msg">Added <b>'+esc(body.title)+'</b> to your collection.</div>';
         $("#f-title").value="";$("#f-year").value="";$("#f-date").value="";$("#f-loc").value="";$("#f-rating").value="";$("#f-notes").value="";
         setupMulti("m-dir","dl-director");setupMulti("m-cast","dl-actor");setupMulti("m-friends","dl-friend");
+        $("#tmdbResults").innerHTML="";$("#tmdbq").value="";
         loadFacets();
       }else if(res!==null){$("#addMsg").innerHTML='<div class="msg">Could not save &mdash; please try again.</div>';}
     }).catch(()=>{$("#addMsg").innerHTML='<div class="msg">Could not save &mdash; please try again.</div>';});
+}
+
+// ---- Manage (edit / delete) -----------------------------------------------
+$("#mgFindBtn").addEventListener("click",mgFind);
+$("#mg-find").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();mgFind();}});
+function mgFind(){
+  const q=$("#mg-find").value.trim(); if(!q)return;
+  $("#mgEditor").innerHTML='<div class="hint">Searching&hellip;</div>';
+  api("/api/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filters:[{mode:"title",q}],match:"all"})})
+    .then(list=>{
+      if(!list.length){$("#mgEditor").innerHTML='<div class="msg">No movie matches &ldquo;'+esc(q)+'&rdquo;.</div>';return;}
+      if(list.length===1){loadEditor(list[0].id);return;}
+      $("#mgEditor").innerHTML='<div class="hint">Multiple matches &mdash; pick one:</div>'+list.map(m=>
+        '<div class="card"><b>'+esc(m.title)+'</b> '+(m.year?'<span class="year">('+esc(m.year)+')</span> ':'')+
+        '<button class="ghost" type="button" data-mid="'+m.id+'" style="float:right">Edit</button></div>').join("");
+    }).catch(()=>{$("#mgEditor").innerHTML='<div class="msg">Something went wrong.</div>';});
+}
+$("#mgEditor").addEventListener("click",e=>{const b=e.target.closest("button[data-mid]");if(b)loadEditor(b.dataset.mid);});
+function loadEditor(mid){
+  $("#mgEditor").innerHTML='<div class="hint">Loading&hellip;</div>';
+  fetch("/api/movie/"+mid).then(r=>r.json()).then(m=>renderEditor(m)).catch(()=>{$("#mgEditor").innerHTML='<div class="msg">Could not load that movie.</div>';});
+}
+function renderEditor(m){
+  const e=$("#mgEditor"); e.dataset.mid=m.id;
+  e.innerHTML=
+    '<div class="card"><div class="msg" style="margin-top:0"><b>Editing:</b> '+esc(m.title)+(m.year?' ('+esc(m.year)+')':'')+'</div>'+
+    '<div class="row"><div class="field"><label>Title *</label><input id="e-title"></div>'+
+    '<div class="field" style="max-width:140px"><label>Year</label><input id="e-year" inputmode="numeric"></div></div>'+
+    '<div class="row"><div class="field"><label>Director(s)</label><div id="e-dir" class="multi"></div></div></div>'+
+    '<div class="row"><div class="field"><label>Cast</label><div id="e-cast" class="multi"></div></div></div>'+
+    '<div class="row" style="margin-top:8px"><button class="go" id="e-saveMovie" type="button">Save movie details</button></div>'+
+    '<div id="e-movieMsg"></div>'+
+    '<div class="msg" style="margin-top:16px"><b>Viewings</b> &mdash; each time you saw it</div>'+
+    '<div id="e-viewings"></div>'+
+    '<button class="ghost" id="e-addView" type="button">+ Add another viewing</button>'+
+    '<hr><button class="danger" id="e-delMovie" type="button">Delete this movie</button>'+
+    '<div id="e-delMsg"></div></div>';
+  $("#e-title").value=m.title||""; $("#e-year").value=(m.year==null?"":m.year);
+  fillMulti($("#e-dir"),"dl-director",m.directors);
+  fillMulti($("#e-cast"),"dl-actor",m.actors);
+  const vc=$("#e-viewings"); vc.innerHTML="";
+  m.viewings.forEach(v=>vc.appendChild(viewingBlock(v)));
+  $("#e-saveMovie").addEventListener("click",()=>saveMovie(m.id));
+  $("#e-addView").addEventListener("click",()=>vc.appendChild(viewingBlock(null)));
+  $("#e-delMovie").addEventListener("click",()=>delMovie(m.id,m.title));
+}
+function viewingBlock(v){
+  const b=document.createElement("div"); b.className="vblock"; if(v)b.dataset.vid=v.id;
+  b.innerHTML=
+    '<div class="row"><div class="field" style="max-width:170px"><label>Date seen</label><input class="v-date" type="date"></div>'+
+    '<div class="field"><label>Location</label><input class="v-loc" list="dl-location" autocomplete="off"></div>'+
+    '<div class="field" style="max-width:120px"><label>Rating</label><input class="v-rating" inputmode="decimal"></div></div>'+
+    '<div class="row"><div class="field"><label>Friends</label><div class="v-friends multi"></div></div></div>'+
+    '<div class="row"><div class="field"><label>Notes</label><textarea class="v-notes"></textarea></div></div>'+
+    '<div class="row" style="margin-top:6px"><button class="go v-save" type="button">Save viewing</button>'+
+    '<button class="ghost v-del" type="button">Delete viewing</button></div><div class="v-msg"></div>';
+  if(v){ b.querySelector(".v-date").value=v.date||""; b.querySelector(".v-loc").value=v.location||"";
+    b.querySelector(".v-rating").value=(v.rating==null?"":v.rating); b.querySelector(".v-notes").value=v.notes||""; }
+  fillMulti(b.querySelector(".v-friends"),"dl-friend",v?v.friends:[]);
+  b.querySelector(".v-save").addEventListener("click",()=>saveViewing(b));
+  b.querySelector(".v-del").addEventListener("click",()=>delViewing(b));
+  return b;
+}
+function vPayload(b){
+  const rt=parseFloat(b.querySelector(".v-rating").value);
+  return {date:b.querySelector(".v-date").value||null,location:b.querySelector(".v-loc").value.trim()||null,
+    rating:isNaN(rt)?null:rt,notes:b.querySelector(".v-notes").value.trim()||null,friends:readMulti(b.querySelector(".v-friends"))};
+}
+function saveMovie(mid){
+  const yr=parseInt($("#e-year").value,10);
+  const body={title:$("#e-title").value.trim(),year:isNaN(yr)?null:yr,directors:readMulti($("#e-dir")),actors:readMulti($("#e-cast"))};
+  if(!body.title){$("#e-movieMsg").innerHTML='<div class="msg">Title is required.</div>';return;}
+  fetch("/api/movie/"+mid,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+    .then(r=>r.json().then(d=>({s:r.status,d}))).then(({s,d})=>{
+      $("#e-movieMsg").innerHTML='<div class="msg">'+(s===200?"Saved.":esc((d&&d.detail)||"Save failed."))+'</div>'; if(s===200)loadFacets();
+    }).catch(()=>{$("#e-movieMsg").innerHTML='<div class="msg">Save failed.</div>';});
+}
+function saveViewing(b){
+  const msg=b.querySelector(".v-msg"); const body=vPayload(b);
+  const url=b.dataset.vid?("/api/viewing/"+b.dataset.vid):("/api/movie/"+$("#mgEditor").dataset.mid+"/viewing");
+  fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+    .then(r=>r.json().then(d=>({s:r.status,d}))).then(({s,d})=>{
+      if(s===200){ if(d.id)b.dataset.vid=d.id; msg.innerHTML='<div class="msg">Saved.</div>'; loadFacets(); }
+      else msg.innerHTML='<div class="msg">'+esc((d&&d.detail)||"Save failed.")+'</div>';
+    }).catch(()=>{msg.innerHTML='<div class="msg">Save failed.</div>';});
+}
+function delViewing(b){
+  if(!b.dataset.vid){b.remove();return;}
+  if(!confirm("Delete this viewing? This can't be undone."))return;
+  fetch("/api/viewing/"+b.dataset.vid,{method:"DELETE"}).then(r=>{ if(r.ok){b.remove();loadFacets();} });
+}
+function delMovie(mid,title){
+  if(!confirm("Delete \u201c"+title+"\u201d and all its viewings? This can't be undone."))return;
+  fetch("/api/movie/"+mid,{method:"DELETE"}).then(r=>{
+    if(r.ok){$("#mgEditor").innerHTML='<div class="msg">Deleted <b>'+esc(title)+'</b>.</div>';loadFacets();}
+    else $("#e-delMsg").innerHTML='<div class="msg">Delete failed.</div>';
+  }).catch(()=>{$("#e-delMsg").innerHTML='<div class="msg">Delete failed.</div>';});
+}
+$("#mgDownload").addEventListener("click",()=>{ window.location="/api/admin/download"; });
+$("#mgReplaceBtn").addEventListener("click",()=>{
+  const f=$("#mgReplaceFile").files[0];
+  if(!f){$("#mgDbMsg").innerHTML='<div class="msg">Choose a .db file first.</div>';return;}
+  if(!confirm("Replace the LIVE database with this file? Everything currently on the site will be overwritten. Make sure you've backed up first."))return;
+  $("#mgDbMsg").innerHTML='<div class="msg">Uploading&hellip;</div>';
+  fetch("/api/admin/replace",{method:"POST",headers:{"Content-Type":"application/octet-stream"},body:f})
+    .then(r=>r.json().then(d=>({s:r.status,d}))).then(({s,d})=>{
+      $("#mgDbMsg").innerHTML='<div class="msg">'+(s===200?"Database replaced. Refreshing&hellip;":esc((d&&d.detail)||"Replace failed."))+'</div>';
+      if(s===200)setTimeout(()=>location.reload(),1200);
+    }).catch(()=>{$("#mgDbMsg").innerHTML='<div class="msg">Replace failed.</div>';});
 });
 
 function loadFacets(){
@@ -359,6 +597,13 @@ function loadFacets(){
     fillDatalists();
   });
 }
+
+// ---- init -----------------------------------------------------------------
+fetch("/api/tmdb/status").then(r=>r.json()).then(s=>{
+  TMDB_ENABLED=!!s.enabled;
+  if(document.getElementById("addForm").style.display!=="none")
+    document.getElementById("tmdbBox").style.display=TMDB_ENABLED?"block":"none";
+}).catch(()=>{});
 
 addRow("actor");
 setupMulti("m-dir","dl-director");
